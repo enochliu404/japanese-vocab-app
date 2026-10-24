@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>和風單字卡 - 日語間隔重複記憶卡 (Standalone)</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Noto Sans JP & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #FAF9F5;
+      color: #1E293B;
+    }
+    .perspective-1000 {
+      perspective: 1000px;
+    }
+    .transform-style-3d {
+      transform-style: preserve-3d;
+    }
+    .backface-hidden {
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+    .rotate-y-180 {
+      transform: rotateY(180deg);
+    }
+    .card-transition {
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-rose-100 selection:text-rose-900">
+
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-stone-200 bg-white/90 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+      <!-- Zone 1: Brand Wordmark -->
+      <div class="flex items-center gap-2 cursor-pointer" onclick="switchTab('study')">
+        <span class="w-8 h-8 rounded-lg bg-[#2B3A67] text-amber-50 font-bold flex items-center justify-center text-sm shadow-sm">和</span>
+        <div>
+          <h1 class="text-base font-bold tracking-tight text-slate-900 leading-tight">和風單字卡</h1>
+          <p class="text-[11px] text-stone-500 font-medium">SRS 間隔重複記憶</p>
+        </div>
+      </div>
+
+      <!-- Zone 2: Navigation Links -->
+      <nav class="flex items-center gap-1 sm:gap-2">
+        <button id="nav-study" onclick="switchTab('study')" class="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors bg-slate-900 text-white">
+          學習首頁
+        </button>
+        <button id="nav-bookmarks" onclick="switchTab('bookmarks')" class="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors text-slate-600 hover:text-slate-900 hover:bg-stone-100">
+          書籤單字 <span id="nav-bookmark-count" class="ml-1 text-xs px-1.5 py-0.2 bg-amber-100 text-amber-800 rounded font-semibold">0</span>
+        </button>
+        <button id="nav-wordbank" onclick="switchTab('wordbank')" class="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors text-slate-600 hover:text-slate-900 hover:bg-stone-100">
+          單字庫與匯入
+        </button>
+      </nav>
+
+      <!-- Zone 3: Quick Info / Stats -->
+      <div class="hidden sm:flex items-center gap-2 text-xs text-stone-500 font-medium">
+        <span>今日已複習: <b id="header-today-reviewed" class="text-slate-900 font-semibold">0</b></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
+    
+    <!-- Tab 1: Study Deck (Flashcard Review) -->
+    <section id="tab-study" class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-stone-200">
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 id="study-mode-title" class="text-xl font-bold text-slate-900">今日複習清單</h2>
+            <span id="study-mode-badge" class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium">SRS 間隔重複</span>
+          </div>
+          <p id="study-deck-subtitle" class="text-xs text-stone-500 mt-0.5">專注於平假名/片假名記憶，翻面確認漢字與繁體中文含義</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btn-audio-replay" onclick="playCurrentAudio()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-stone-200 bg-white text-slate-700 hover:bg-stone-50 shadow-sm" title="朗讀日語發音 (S)">
+            <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+            發音 (S)
+          </button>
+          <button id="btn-toggle-bookmark-top" onclick="toggleCurrentBookmark()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-stone-200 bg-white text-slate-700 hover:bg-stone-50 shadow-sm" title="切換書籤 (B)">
+            <svg id="top-star-icon" class="w-4 h-4 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+            書籤 (B)
+          </button>
+        </div>
+      </div>
+
+      <!-- Study Queue Progress Bar -->
+      <div id="study-progress-container" class="space-y-1.5">
+        <div class="flex items-center justify-between text-xs font-medium text-stone-600">
+          <span>進度：<b id="study-progress-text" class="text-slate-900">0 / 0</b></span>
+          <span>待複習：<b id="study-remaining-text" class="text-rose-600">0</b> 張</span>
+        </div>
+        <div class="w-full bg-stone-200 h-2 rounded-full overflow-hidden">
+          <div id="study-progress-bar" class="bg-[#2B3A67] h-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- The 3D Flashcard Container -->
+      <div id="flashcard-box" class="perspective-1000 w-full max-w-xl mx-auto min-h-[340px] sm:min-h-[380px]">
+        <div id="flashcard-inner" class="relative w-full h-full min-h-[340px] sm:min-h-[380px] transform-style-3d card-transition cursor-pointer select-none" onclick="toggleCardFlip()">
+          
+          <!-- FRONT FACE (Kana Only) -->
+          <div class="absolute inset-0 w-full h-full backface-hidden bg-white border border-stone-200 rounded-2xl p-6 sm:p-8 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-stone-400 font-mono tracking-wider">KANA READING · 假名</span>
+              <button onclick="event.stopPropagation(); toggleCurrentBookmark();" class="p-2 rounded-lg hover:bg-stone-100 text-stone-400 transition-colors" title="書籤">
+                <svg id="card-front-star" class="w-5 h-5 text-stone-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+              </button>
+            </div>
+
+            <div class="text-center py-6">
+              <h3 id="card-front-kana" class="text-4xl sm:text-5xl font-bold tracking-tight text-slate-900 leading-tight">
+                たべる
+              </h3>
+              <p class="text-xs text-stone-400 mt-3 font-medium">（點擊卡片或按空白鍵查看解答）</p>
+            </div>
+
+            <div class="flex items-center justify-between text-xs text-stone-400 border-t border-stone-100 pt-4">
+              <span>間隔天數: <b id="card-front-interval" class="text-stone-600">0天</b></span>
+              <span class="inline-flex items-center gap-1 text-slate-600 font-medium">
+                翻轉卡片 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </span>
+            </div>
+          </div>
+
+          <!-- BACK FACE (Kanji & Traditional Chinese Meaning) -->
+          <div class="absolute inset-0 w-full h-full backface-hidden rotate-y-180 bg-[#FCFBF8] border border-stone-200 rounded-2xl p-6 sm:p-8 flex flex-col justify-between shadow-sm">
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-stone-500 font-mono tracking-wider">ANSWER · 漢字與釋義</span>
+              <button onclick="event.stopPropagation(); playCurrentAudio();" class="p-2 rounded-lg hover:bg-stone-200 text-stone-600 transition-colors" title="聆聽日語發音">
+                <svg class="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+              </button>
+            </div>
+
+            <div class="text-center py-4 space-y-2">
+              <div id="card-back-kana" class="text-lg font-medium text-stone-500 tracking-wide">
+                たべる
+              </div>
+              <h3 id="card-back-kanji" class="text-4xl sm:text-5xl font-bold tracking-tight text-slate-900 leading-tight">
+                食べる
+              </h3>
+              <div class="pt-2">
+                <span class="inline-block px-3 py-1 bg-amber-50 border border-amber-200/60 rounded-lg text-amber-900 font-semibold text-lg sm:text-xl">
+                  <span id="card-back-meaning">吃、進食（動詞）</span>
+                </span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs text-stone-500 border-t border-stone-200/60 pt-3">
+              <span>上次間隔: <b id="card-back-interval">0天</b></span>
+              <span class="text-stone-400">請評估您的熟悉度如下</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flip & SRS Buttons -->
+      <div id="flip-control-area" class="max-w-xl mx-auto flex flex-col items-center gap-3">
+        <button id="btn-show-answer" onclick="toggleCardFlip()" class="w-full py-3 px-6 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl shadow-sm transition-colors text-center flex items-center justify-center gap-2">
+          <span>查看解答 (空白鍵 Space)</span>
+        </button>
+
+        <div id="srs-action-buttons" class="hidden w-full grid grid-cols-3 gap-2 sm:gap-3">
+          <button onclick="handleRating('hard')" class="flex flex-col items-center justify-center py-3 px-2 sm:px-4 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-800 transition-colors shadow-sm active:scale-[0.98]">
+            <span class="font-bold text-sm sm:text-base">不熟悉</span>
+            <span class="text-[11px] text-rose-600 mt-0.5 font-medium">0 天 (今天稍後)</span>
+            <span class="text-[10px] text-rose-400 mt-1 font-mono">[ 1 ]</span>
+          </button>
+
+          <button onclick="handleRating('good')" class="flex flex-col items-center justify-center py-3 px-2 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 transition-colors shadow-sm active:scale-[0.98]">
+            <span class="font-bold text-sm sm:text-base">普通</span>
+            <span class="text-[11px] text-slate-600 mt-0.5 font-medium">+3 天</span>
+            <span class="text-[10px] text-slate-400 mt-1 font-mono">[ 2 ]</span>
+          </button>
+
+          <button onclick="handleRating('easy')" class="flex flex-col items-center justify-center py-3 px-2 sm:px-4 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 transition-colors shadow-sm active:scale-[0.98]">
+            <span class="font-bold text-sm sm:text-base">熟悉</span>
+            <span class="text-[11px] text-emerald-600 mt-0.5 font-medium">+10 天</span>
+            <span class="text-[10px] text-emerald-500 mt-1 font-mono">[ 3 ]</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Completion Screen -->
+      <div id="study-completed-screen" class="hidden max-w-xl mx-auto bg-white border border-stone-200 rounded-2xl p-8 text-center space-y-6 shadow-sm">
+        <div class="w-16 h-16 mx-auto rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <div>
+          <h3 class="text-2xl font-bold text-slate-900">太棒了！今日複習已完成</h3>
+          <p class="text-sm text-stone-500 mt-1">目前沒有到期的單字卡，持之以恆是掌握日語的關鍵！</p>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 p-4 bg-stone-50 rounded-xl border border-stone-200/60 text-left">
+          <div>
+            <div class="text-[11px] text-stone-500 font-medium">今日已複習</div>
+            <div id="completed-stat-today" class="text-xl font-bold text-slate-900 font-mono">0</div>
+          </div>
+          <div>
+            <div class="text-[11px] text-stone-500 font-medium">熟練單字 (+10天)</div>
+            <div id="completed-stat-mastered" class="text-xl font-bold text-emerald-700 font-mono">0</div>
+          </div>
+          <div>
+            <div class="text-[11px] text-stone-500 font-medium">總單字量</div>
+            <div id="completed-stat-total" class="text-xl font-bold text-slate-900 font-mono">0</div>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+          <button onclick="startBookmarksDrill()" class="py-2.5 px-4 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-semibold rounded-xl text-sm transition-colors">
+            僅複習書籤單字 (<span id="completed-bookmarks-count">0</span>)
+          </button>
+          <button onclick="forceReviewAllWords()" class="py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl text-sm transition-colors">
+            提前自由複習所有單字
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 2: Bookmarked Words Hub -->
+    <section id="tab-bookmarks" class="hidden space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-200">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+            書籤單字 (Bookmarked Words)
+            <span id="bm-badge-count" class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold">0</span>
+          </h2>
+          <p class="text-xs text-stone-500 mt-1">收藏重點標記生詞，隨時發起專屬特訓複習</p>
+        </div>
+        <button onclick="startBookmarksDrill()" class="inline-flex items-center justify-center gap-2 py-2.5 px-5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl text-sm shadow-sm transition-colors">
+          僅複習書籤單字 (Practice Bookmarks Only)
+        </button>
+      </div>
+
+      <div class="relative">
+        <input id="bm-search-input" oninput="renderBookmarksList()" type="text" placeholder="搜尋書籤單字 (假名、漢字或中文)..." class="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2B3A67]/20 focus:border-[#2B3A67]">
+      </div>
+
+      <div id="bm-words-list" class="space-y-3"></div>
+      <div id="bm-empty-placeholder" class="hidden text-center py-16 bg-white border border-dashed border-stone-300 rounded-2xl p-6">
+        <p class="text-stone-500 font-medium">目前尚未標記任何書籤單字</p>
+        <p class="text-xs text-stone-400 mt-1">在複習卡片時點選星星圖示即可將其加入此清單</p>
+      </div>
+    </section>
+
+    <!-- Tab 3: Word Bank & Import -->
+    <section id="tab-wordbank" class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-200">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">單字庫與匯入</h2>
+          <p class="text-xs text-stone-500 mt-1">管理所有單字、支援 CSV/TSV 批次匯入與範例詞庫</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="loadDemoVocab()" class="py-2 px-3 text-xs font-semibold rounded-lg border border-stone-200 bg-white hover:bg-stone-50 text-slate-700 shadow-sm transition-colors">
+            載入範例單字 (Demo)
+          </button>
+          <button onclick="openImportModal()" class="py-2 px-3 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-800 text-white shadow-sm transition-colors">
+            + 批次匯入 / 新增單字
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="p-3.5 bg-white border border-stone-200 rounded-xl">
+          <div class="text-xs text-stone-500 font-medium">總單字數</div>
+          <div id="wb-stat-total" class="text-2xl font-bold text-slate-900 font-mono mt-1">0</div>
+        </div>
+        <div class="p-3.5 bg-white border border-stone-200 rounded-xl">
+          <div class="text-xs text-stone-500 font-medium">今日待複習</div>
+          <div id="wb-stat-due" class="text-2xl font-bold text-rose-600 font-mono mt-1">0</div>
+        </div>
+        <div class="p-3.5 bg-white border border-stone-200 rounded-xl">
+          <div class="text-xs text-stone-500 font-medium">書籤收藏</div>
+          <div id="wb-stat-bm" class="text-2xl font-bold text-amber-600 font-mono mt-1">0</div>
+        </div>
+        <div class="p-3.5 bg-white border border-stone-200 rounded-xl">
+          <div class="text-xs text-stone-500 font-medium">熟練 (+10天)</div>
+          <div id="wb-stat-mastered" class="text-2xl font-bold text-emerald-700 font-mono mt-1">0</div>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3">
+        <div class="relative flex-1">
+          <input id="wb-search-input" oninput="renderWordBankList()" type="text" placeholder="搜尋所有單字庫 (假名、漢字或中文)..." class="w-full pl-10 pr-4 py-2 text-sm bg-white border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800">
+        </div>
+        <div class="flex items-center gap-2">
+          <select id="wb-filter-select" onchange="renderWordBankList()" class="px-3 py-2 text-xs sm:text-sm bg-white border border-stone-200 rounded-xl font-medium text-slate-700 focus:outline-none">
+            <option value="all">全部單字</option>
+            <option value="due">今日待複習</option>
+            <option value="bookmarked">僅書籤</option>
+            <option value="hard">間隔 0 天</option>
+            <option value="good">間隔 3 天</option>
+            <option value="easy">間隔 10 天</option>
+          </select>
+          <button onclick="exportWordsToCSV()" class="px-3 py-2 text-xs sm:text-sm border border-stone-200 bg-white hover:bg-stone-50 text-slate-700 rounded-xl font-medium transition-colors">
+            匯出 CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-stone-50 border-b border-stone-200 text-stone-600 text-xs font-semibold uppercase tracking-wider">
+              <tr>
+                <th class="py-3 px-4 w-10">書籤</th>
+                <th class="py-3 px-4">假名 (Kana)</th>
+                <th class="py-3 px-4">漢字 (Kanji)</th>
+                <th class="py-3 px-4">中文釋義</th>
+                <th class="py-3 px-4">當前間隔</th>
+                <th class="py-3 px-4">下次複習日</th>
+                <th class="py-3 px-4 text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody id="wb-table-body" class="divide-y divide-stone-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Import Modal -->
+  <div id="modal-import" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl border border-stone-200 max-w-xl w-full p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+        <h3 class="text-lg font-bold text-slate-900">批次匯入 / 新增單字</h3>
+        <button onclick="closeImportModal()" class="text-stone-400 hover:text-slate-700 text-xl font-bold">&times;</button>
+      </div>
+
+      <div class="flex border-b border-stone-200">
+        <button id="import-tab-bulk" onclick="switchImportSubTab('bulk')" class="pb-2 px-3 text-xs font-bold border-b-2 border-slate-900 text-slate-900">
+          批次貼上 / CSV 上傳
+        </button>
+        <button id="import-tab-single" onclick="switchImportSubTab('single')" class="pb-2 px-3 text-xs font-medium text-stone-500 hover:text-slate-900">
+          手動新增單詞
+        </button>
+      </div>
+
+      <div id="subtab-bulk" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">
+            文字貼上格式（每行一個單字：假名, 漢字, 中文釋義）
+          </label>
+          <textarea id="import-raw-input" rows="6" class="w-full text-xs font-mono p-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800" placeholder="たべる, 食べる, 吃&#10;のむ, 飲む, 喝&#10;りんご, 林檎, 蘋果&#10;ありがとう, , 謝謝"></textarea>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <label class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-stone-200 rounded-lg cursor-pointer bg-white hover:bg-stone-50 text-slate-700">
+            <span>上傳 CSV / TSV 檔</span>
+            <input type="file" id="import-file-input" accept=".csv,.tsv,.txt" class="hidden" onchange="handleFileUpload(event)">
+          </label>
+          <button onclick="parseAndPreviewImport()" class="px-4 py-1.5 bg-stone-100 hover:bg-stone-200 text-slate-800 font-semibold text-xs rounded-lg transition-colors">
+            預覽解析結果
+          </button>
+        </div>
+
+        <div id="import-preview-box" class="hidden p-3 bg-stone-50 rounded-xl border border-stone-200 text-xs space-y-2">
+          <div class="flex items-center justify-between font-semibold">
+            <span class="text-emerald-700">可匯入有效單字: <b id="preview-valid-count">0</b></span>
+            <span class="text-amber-700">已存在/重複: <b id="preview-dup-count">0</b></span>
+          </div>
+          <div id="preview-details" class="text-[11px] text-stone-500 max-h-32 overflow-y-auto font-mono"></div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2 border-t border-stone-100">
+          <button onclick="closeImportModal()" class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-slate-900">取消</button>
+          <button onclick="executeBulkImport()" class="px-5 py-2 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-sm transition-colors">確認匯入並儲存</button>
+        </div>
+      </div>
+
+      <div id="subtab-single" class="hidden space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">假名 (Kana) <span class="text-rose-500">*</span></label>
+          <input id="single-kana" type="text" placeholder="例：たべる" class="w-full text-sm px-3 py-2 border border-stone-200 rounded-xl focus:outline-none focus:border-slate-800">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">漢字 (Kanji)</label>
+          <input id="single-kanji" type="text" placeholder="例：食べる（純假名詞彙可留空）" class="w-full text-sm px-3 py-2 border border-stone-200 rounded-xl focus:outline-none focus:border-slate-800">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">繁體中文釋義 <span class="text-rose-500">*</span></label>
+          <input id="single-meaning" type="text" placeholder="例：吃、進食" class="w-full text-sm px-3 py-2 border border-stone-200 rounded-xl focus:outline-none focus:border-slate-800">
+        </div>
+        <div class="flex justify-end gap-2 pt-2 border-t border-stone-100">
+          <button onclick="closeImportModal()" class="px-4 py-2 text-xs font-medium text-stone-600 hover:text-slate-900">取消</button>
+          <button onclick="saveSingleWord()" class="px-5 py-2 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-sm transition-colors">新增單字</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'jp_vocab_flashcards_v1';
+    const STATS_KEY = 'jp_vocab_stats_v1';
+
+    const DEMO_WORDS = [
+      { id: 'd-1', kana: 'たべる', kanji: '食べる', meaning: '吃、進食（動詞）', bookmarked: false, interval: 0, nextReviewDate: getToday() },
+      { id: 'd-2', kana: 'のむ', kanji: '飲む', meaning: '喝、飲用、吞服', bookmarked: true, interval: 0, nextReviewDate: getToday() },
+      { id: 'd-3', kana: 'あさごはん', kanji: '朝ご飯', meaning: '早餐、早飯', bookmarked: false, interval: 0, nextReviewDate: getToday() },
+      { id: 'd-4', kana: 'りんご', kanji: '林檎', meaning: '蘋果', bookmarked: true, interval: 0, nextReviewDate: getToday() },
+      { id: 'd-5', kana: 'ねこ', kanji: '猫', meaning: '貓咪、貓', bookmarked: false, interval: 0, nextReviewDate: getToday() },
+      { id: 'd-6', kana: 'いぬ', kanji: '犬', meaning: '狗狗、犬', bookmarked: false, interval: 0, nextReviewDate: getToday() },
+      { id: 'd-7', kana: 'ともだち', kanji: '友達', meaning: '朋友、友人', bookmarked: false, interval: 0, nextReviewDate: getToday() },
+      { id: 'd-8', kana: 'ありがとう', kanji: '有難う', meaning: '謝謝、非常感謝', bookmarked: true, interval: 0, nextReviewDate: getToday() },
+      { id: 'd-9', kana: 'べんきょう', kanji: '勉強', meaning: '學習、念書', bookmarked: false, interval: 0, nextReviewDate: getToday() },
+      { id: 'd-10', kana: 'さくら', kanji: '桜', meaning: '櫻花', bookmarked: false, interval: 0, nextReviewDate: getToday() },
+      { id: 'd-11', kana: 'しごと', kanji: '仕事', meaning: '工作、上班、職務', bookmarked: false, interval: 0, nextReviewDate: getToday() },
+      { id: 'd-12', kana: 'やすみ', kanji: '休み', meaning: '休息、請假、休假', bookmarked: false, interval: 0, nextReviewDate: getToday() },
+      { id: 'd-13', kana: 'てんき', kanji: '天気', meaning: '天氣、氣候', bookmarked: false, interval: 0, nextReviewDate: getToday() },
+      { id: 'd-14', kana: 'ほん', kanji: '本', meaning: '書本、書籍', bookmarked: false, interval: 0, nextReviewDate: getToday() },
+      { id: 'd-15', kana: 'みず', kanji: '水', meaning: '水、開水', bookmarked: false, interval: 0, nextReviewDate: getToday() },
+      { id: 'd-16', kana: 'くるま', kanji: '車', meaning: '車輛、汽車', bookmarked: false, interval: 0, nextReviewDate: getToday() }
+    ];
+
+    function getToday() {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    }
+
+    function addDays(days) {
+      const d = new Date();
+      d.setDate(d.getDate() + days);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    let words = [];
+    let currentDeck = [];
+    let currentIndex = 0;
+    let isFlipped = false;
+    let isBookmarksOnlyMode = false;
+    let parsedImportWords = [];
+
+    function initApp() {
+      loadWordsFromStorage();
+      setupKeyboardShortcuts();
+      updateHeaderStats();
+      prepareDailyDeck();
+    }
+
+    function loadWordsFromStorage() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        try { words = JSON.parse(raw); } catch (e) { words = [...DEMO_WORDS]; }
+      } else {
+        words = [...DEMO_WORDS];
+        saveWordsToStorage();
+      }
+      updateCounts();
+    }
+
+    function saveWordsToStorage() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(words));
+      updateCounts();
+    }
+
+    function updateCounts() {
+      const bmCount = words.filter(w => w.bookmarked).length;
+      document.getElementById('nav-bookmark-count').textContent = bmCount;
+      document.getElementById('bm-badge-count').textContent = bmCount;
+      document.getElementById('completed-bookmarks-count').textContent = bmCount;
+      document.getElementById('wb-stat-bm').textContent = bmCount;
+      document.getElementById('wb-stat-total').textContent = words.length;
+
+      const today = getToday();
+      const dueCount = words.filter(w => !w.nextReviewDate || w.nextReviewDate <= today).length;
+      document.getElementById('wb-stat-due').textContent = dueCount;
+      document.getElementById('wb-stat-mastered').textContent = words.filter(w => w.interval >= 10).length;
+    }
+
+    function updateHeaderStats() {
+      const stats = getDailyStats();
+      document.getElementById('header-today-reviewed').textContent = stats.reviewedCount;
+    }
+
+    function getDailyStats() {
+      const today = getToday();
+      try {
+        const raw = localStorage.getItem(STATS_KEY);
+        if (raw) {
+          const s = JSON.parse(raw);
+          if (s.date === today) return s;
+        }
+      } catch (e) {}
+      return { date: today, reviewedCount: 0 };
+    }
+
+    function incrementDailyStat() {
+      const s = getDailyStats();
+      s.reviewedCount++;
+      localStorage.setItem(STATS_KEY, JSON.stringify(s));
+      updateHeaderStats();
+    }
+
+    function prepareDailyDeck() {
+      isBookmarksOnlyMode = false;
+      const today = getToday();
+      currentDeck = words.filter(w => !w.nextReviewDate || w.nextReviewDate <= today);
+      currentIndex = 0;
+      isFlipped = false;
+      document.getElementById('study-mode-title').textContent = '今日複習清單';
+      document.getElementById('study-mode-badge').textContent = 'SRS 間隔重複';
+      renderCurrentCard();
+    }
+
+    function startBookmarksDrill() {
+      switchTab('study');
+      isBookmarksOnlyMode = true;
+      currentDeck = words.filter(w => w.bookmarked);
+      currentIndex = 0;
+      isFlipped = false;
+      document.getElementById('study-mode-title').textContent = '書籤單字專屬特訓';
+      document.getElementById('study-mode-badge').textContent = '僅複習書籤';
+      renderCurrentCard();
+    }
+
+    function forceReviewAllWords() {
+      isBookmarksOnlyMode = false;
+      currentDeck = [...words];
+      currentIndex = 0;
+      isFlipped = false;
+      document.getElementById('study-mode-title').textContent = '自由全單字複習';
+      document.getElementById('study-mode-badge').textContent = '全部單字';
+      renderCurrentCard();
+    }
+
+    function renderCurrentCard() {
+      const cardBox = document.getElementById('flashcard-box');
+      const flipArea = document.getElementById('flip-control-area');
+      const progressContainer = document.getElementById('study-progress-container');
+      const completedScreen = document.getElementById('study-completed-screen');
+
+      isFlipped = false;
+      document.getElementById('flashcard-inner').classList.remove('rotate-y-180');
+      document.getElementById('btn-show-answer').classList.remove('hidden');
+      document.getElementById('srs-action-buttons').classList.add('hidden');
+
+      if (currentDeck.length === 0 || currentIndex >= currentDeck.length) {
+        cardBox.classList.add('hidden');
+        flipArea.classList.add('hidden');
+        progressContainer.classList.add('hidden');
+        completedScreen.classList.remove('hidden');
+
+        const stats = getDailyStats();
+        document.getElementById('completed-stat-today').textContent = stats.reviewedCount;
+        document.getElementById('completed-stat-mastered').textContent = words.filter(w => w.interval >= 10).length;
+        document.getElementById('completed-stat-total').textContent = words.length;
+        return;
+      }
+
+      cardBox.classList.remove('hidden');
+      flipArea.classList.remove('hidden');
+      progressContainer.classList.remove('hidden');
+      completedScreen.classList.add('hidden');
+
+      const card = currentDeck[currentIndex];
+      document.getElementById('card-front-kana').textContent = card.kana;
+      document.getElementById('card-front-interval').textContent = `${card.interval || 0} 天`;
+      document.getElementById('card-back-kana').textContent = card.kana;
+      document.getElementById('card-back-kanji').textContent = card.kanji || '（無漢字）';
+      document.getElementById('card-back-meaning').textContent = card.meaning;
+      document.getElementById('card-back-interval').textContent = `${card.interval || 0} 天`;
+
+      const frontStar = document.getElementById('card-front-star');
+      const topStar = document.getElementById('top-star-icon');
+      if (card.bookmarked) {
+        frontStar.setAttribute('fill', '#F59E0B');
+        topStar.setAttribute('fill', '#F59E0B');
+      } else {
+        frontStar.setAttribute('fill', 'none');
+        topStar.setAttribute('fill', 'none');
+      }
+
+      document.getElementById('study-progress-text').textContent = `${currentIndex + 1} / ${currentDeck.length}`;
+      document.getElementById('study-remaining-text').textContent = currentDeck.length - currentIndex;
+      const pct = Math.round(((currentIndex) / currentDeck.length) * 100);
+      document.getElementById('study-progress-bar').style.width = `${pct}%`;
+    }
+
+    function toggleCardFlip() {
+      if (currentDeck.length === 0 || currentIndex >= currentDeck.length) return;
+      isFlipped = !isFlipped;
+      const inner = document.getElementById('flashcard-inner');
+      const showAnswerBtn = document.getElementById('btn-show-answer');
+      const srsBtns = document.getElementById('srs-action-buttons');
+
+      if (isFlipped) {
+        inner.classList.add('rotate-y-180');
+        showAnswerBtn.classList.add('hidden');
+        srsBtns.classList.remove('hidden');
+      } else {
+        inner.classList.remove('rotate-y-180');
+        showAnswerBtn.classList.remove('hidden');
+        srsBtns.classList.add('hidden');
+      }
+    }
+
+    function handleRating(rating) {
+      if (currentDeck.length === 0 || currentIndex >= currentDeck.length) return;
+      const currentWord = currentDeck[currentIndex];
+      const wordInDb = words.find(w => w.id === currentWord.id);
+      incrementDailyStat();
+
+      if (rating === 'hard') {
+        if (wordInDb) {
+          wordInDb.interval = 0;
+          wordInDb.nextReviewDate = getToday();
+        }
+        currentDeck.push({ ...currentWord, interval: 0, nextReviewDate: getToday() });
+        currentIndex++;
+      } else if (rating === 'good') {
+        if (wordInDb) {
+          wordInDb.interval = 3;
+          wordInDb.nextReviewDate = addDays(3);
+        }
+        currentIndex++;
+      } else if (rating === 'easy') {
+        if (wordInDb) {
+          wordInDb.interval = 10;
+          wordInDb.nextReviewDate = addDays(10);
+        }
+        currentIndex++;
+      }
+
+      saveWordsToStorage();
+      renderCurrentCard();
+    }
+
+    function toggleCurrentBookmark() {
+      if (currentDeck.length === 0 || currentIndex >= currentDeck.length) return;
+      const card = currentDeck[currentIndex];
+      card.bookmarked = !card.bookmarked;
+      const item = words.find(w => w.id === card.id);
+      if (item) item.bookmarked = card.bookmarked;
+      saveWordsToStorage();
+      renderCurrentCard();
+    }
+
+    function playCurrentAudio() {
+      if (currentDeck.length === 0 || currentIndex >= currentDeck.length) return;
+      speakJapanese(currentDeck[currentIndex].kana);
+    }
+
+    function speakJapanese(text) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'ja-JP';
+      u.rate = 0.9;
+      window.speechSynthesis.speak(u);
+    }
+
+    function setupKeyboardShortcuts() {
+      document.addEventListener('keydown', (e) => {
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+        if (e.code === 'Space') {
+          e.preventDefault();
+          toggleCardFlip();
+        } else if (e.key === '1') {
+          if (isFlipped) handleRating('hard');
+        } else if (e.key === '2') {
+          if (isFlipped) handleRating('good');
+        } else if (e.key === '3') {
+          if (isFlipped) handleRating('easy');
+        } else if (e.key === 'b' || e.key === 'B') {
+          toggleCurrentBookmark();
+        } else if (e.key === 's' || e.key === 'S' || e.key === 'a' || e.key === 'A') {
+          playCurrentAudio();
+        }
+      });
+    }
+
+    function switchTab(tab) {
+      ['study', 'bookmarks', 'wordbank'].forEach(t => {
+        const section = document.getElementById(`tab-${t}`);
+        const navBtn = document.getElementById(`nav-${t}`);
+        if (t === tab) {
+          section.classList.remove('hidden');
+          navBtn.className = "px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors bg-slate-900 text-white";
+        } else {
+          section.classList.add('hidden');
+          navBtn.className = "px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors text-slate-600 hover:text-slate-900 hover:bg-stone-100";
+        }
+      });
+      if (tab === 'bookmarks') renderBookmarksList();
+      if (tab === 'wordbank') renderWordBankList();
+    }
+
+    function renderBookmarksList() {
+      const listEl = document.getElementById('bm-words-list');
+      const emptyEl = document.getElementById('bm-empty-placeholder');
+      const query = (document.getElementById('bm-search-input').value || '').trim().toLowerCase();
+
+      const bms = words.filter(w => w.bookmarked).filter(w => {
+        if (!query) return true;
+        return w.kana.toLowerCase().includes(query) || (w.kanji && w.kanji.toLowerCase().includes(query)) || w.meaning.toLowerCase().includes(query);
+      });
+
+      if (bms.length === 0) {
+        listEl.innerHTML = '';
+        emptyEl.classList.remove('hidden');
+        return;
+      }
+      emptyEl.classList.add('hidden');
+      listEl.innerHTML = bms.map(w => `
+        <div class="p-4 bg-white border border-stone-200 rounded-xl flex items-center justify-between gap-4 shadow-sm">
+          <div class="flex items-center gap-3">
+            <button onclick="speakJapanese('${escapeQuote(w.kana)}')" class="p-2 rounded-lg bg-stone-50 hover:bg-stone-100 text-slate-700">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+            </button>
+            <div>
+              <div class="flex items-baseline gap-2">
+                <span class="text-xs text-stone-500">${w.kana}</span>
+                <span class="text-base font-bold text-slate-900">${w.kanji || w.kana}</span>
+              </div>
+              <p class="text-sm text-slate-700 font-medium">${w.meaning}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-xs px-2 py-0.5 rounded font-mono ${w.interval >= 10 ? 'bg-emerald-50 text-emerald-700' : w.interval === 3 ? 'bg-slate-100 text-slate-700' : 'bg-rose-50 text-rose-700'}">${w.interval || 0} 天間隔</span>
+            <button onclick="removeBookmarkFromList('${w.id}')" class="p-2 text-amber-500 hover:text-stone-400">
+              <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function removeBookmarkFromList(id) {
+      const item = words.find(w => w.id === id);
+      if (item) {
+        item.bookmarked = false;
+        saveWordsToStorage();
+        renderBookmarksList();
+        renderCurrentCard();
+      }
+    }
+
+    function renderWordBankList() {
+      const tbody = document.getElementById('wb-table-body');
+      const query = (document.getElementById('wb-search-input').value || '').trim().toLowerCase();
+      const filter = document.getElementById('wb-filter-select').value;
+      const today = getToday();
+
+      let filtered = words.filter(w => {
+        if (!query) return true;
+        return w.kana.toLowerCase().includes(query) || (w.kanji && w.kanji.toLowerCase().includes(query)) || w.meaning.toLowerCase().includes(query);
+      });
+
+      if (filter === 'due') filtered = filtered.filter(w => !w.nextReviewDate || w.nextReviewDate <= today);
+      else if (filter === 'bookmarked') filtered = filtered.filter(w => w.bookmarked);
+      else if (filter === 'hard') filtered = filtered.filter(w => w.interval === 0);
+      else if (filter === 'good') filtered = filtered.filter(w => w.interval === 3);
+      else if (filter === 'easy') filtered = filtered.filter(w => w.interval === 10);
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-xs text-stone-400">查無相符單字</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(w => `
+        <tr class="hover:bg-stone-50/70">
+          <td class="py-3 px-4">
+            <button onclick="toggleWordBankBookmark('${w.id}')">
+              <svg class="w-4 h-4 ${w.bookmarked ? 'fill-amber-400 text-amber-500' : 'text-stone-300'}" fill="${w.bookmarked ? '#F59E0B' : 'none'}" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+            </button>
+          </td>
+          <td class="py-3 px-4 font-medium text-slate-800">
+            ${w.kana}
+            <button onclick="speakJapanese('${escapeQuote(w.kana)}')" class="ml-1 text-stone-400 hover:text-slate-800">🔊</button>
+          </td>
+          <td class="py-3 px-4 text-slate-900 font-semibold">${w.kanji || '—'}</td>
+          <td class="py-3 px-4 text-stone-600">${w.meaning}</td>
+          <td class="py-3 px-4">
+            <span class="text-xs px-2 py-0.5 rounded font-mono ${w.interval >= 10 ? 'bg-emerald-50 text-emerald-700' : w.interval === 3 ? 'bg-slate-100 text-slate-700' : 'bg-rose-50 text-rose-700'}">${w.interval || 0} 天</span>
+          </td>
+          <td class="py-3 px-4 text-xs font-mono text-stone-500">${w.nextReviewDate || today}</td>
+          <td class="py-3 px-4 text-right">
+            <button onclick="deleteWord('${w.id}')" class="text-stone-400 hover:text-rose-600 text-xs">刪除</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function toggleWordBankBookmark(id) {
+      const item = words.find(w => w.id === id);
+      if (item) {
+        item.bookmarked = !item.bookmarked;
+        saveWordsToStorage();
+        renderWordBankList();
+        renderCurrentCard();
+      }
+    }
+
+    function deleteWord(id) {
+      if (!confirm('確定要從單字庫中刪除此單詞嗎？')) return;
+      words = words.filter(w => w.id !== id);
+      saveWordsToStorage();
+      renderWordBankList();
+      prepareDailyDeck();
+    }
+
+    function openImportModal() {
+      document.getElementById('modal-import').classList.remove('hidden');
+      document.getElementById('import-preview-box').classList.add('hidden');
+      document.getElementById('import-raw-input').value = '';
+      parsedImportWords = [];
+    }
+
+    function closeImportModal() {
+      document.getElementById('modal-import').classList.add('hidden');
+    }
+
+    function switchImportSubTab(tab) {
+      const isBulk = tab === 'bulk';
+      document.getElementById('subtab-bulk').classList.toggle('hidden', !isBulk);
+      document.getElementById('subtab-single').classList.toggle('hidden', isBulk);
+      document.getElementById('import-tab-bulk').className = isBulk ? 'pb-2 px-3 text-xs font-bold border-b-2 border-slate-900 text-slate-900' : 'pb-2 px-3 text-xs font-medium text-stone-500';
+      document.getElementById('import-tab-single').className = !isBulk ? 'pb-2 px-3 text-xs font-bold border-b-2 border-slate-900 text-slate-900' : 'pb-2 px-3 text-xs font-medium text-stone-500';
+    }
+
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.getElementById('import-raw-input').value = e.target.result;
+        parseAndPreviewImport();
+      };
+      reader.readAsText(file);
+    }
+
+    function parseAndPreviewImport() {
+      const raw = document.getElementById('import-raw-input').value;
+      if (!raw.trim()) return alert('請先貼上單字內容');
+      const existingKeys = new Set(words.map(w => `${w.kana.toLowerCase().trim()}_${(w.kanji || '').toLowerCase().trim()}`));
+      const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0 && !l.startsWith('#') && !l.startsWith('//'));
+
+      parsedImportWords = [];
+      const duplicates = [];
+      const today = getToday();
+
+      for (const line of lines) {
+        let parts = line.includes('\t') ? line.split('\t') : (line.includes(',') ? line.split(',') : line.split(/\s{2,}/));
+        parts = parts.map(p => p.trim());
+        if (parts.length >= 2) {
+          const kana = parts[0];
+          const kanji = parts.length >= 3 ? parts[1] : '';
+          const meaning = parts.length >= 3 ? parts.slice(2).join(', ') : parts[1];
+          if (!kana) continue;
+
+          const key = `${kana.toLowerCase().trim()}_${kanji.toLowerCase().trim()}`;
+          if (existingKeys.has(key)) {
+            duplicates.push(kana);
+            continue;
+          }
+          existingKeys.add(key);
+          parsedImportWords.push({
+            id: 'word-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+            kana, kanji, meaning: meaning || '（無釋義）',
+            bookmarked: false, interval: 0, nextReviewDate: today
+          });
+        }
+      }
+
+      document.getElementById('import-preview-box').classList.remove('hidden');
+      document.getElementById('preview-valid-count').textContent = parsedImportWords.length;
+      document.getElementById('preview-dup-count').textContent = duplicates.length;
+      document.getElementById('preview-details').innerHTML = parsedImportWords.slice(0, 4).map(w => `<div>✔ ${w.kana} ${w.kanji ? `[${w.kanji}]` : ''} → ${w.meaning}</div>`).join('');
+    }
+
+    function executeBulkImport() {
+      if (parsedImportWords.length === 0) parseAndPreviewImport();
+      if (parsedImportWords.length === 0) return alert('沒有有效的單字可匯入');
+      words = [...words, ...parsedImportWords];
+      saveWordsToStorage();
+      closeImportModal();
+      renderWordBankList();
+      prepareDailyDeck();
+      alert(`成功匯入 ${parsedImportWords.length} 個新單字！`);
+    }
+
+    function saveSingleWord() {
+      const kana = document.getElementById('single-kana').value.trim();
+      const kanji = document.getElementById('single-kanji').value.trim();
+      const meaning = document.getElementById('single-meaning').value.trim();
+      if (!kana || !meaning) return alert('請填寫假名與中文釋義');
+      words.unshift({
+        id: 'word-' + Date.now(),
+        kana, kanji, meaning,
+        bookmarked: false, interval: 0, nextReviewDate: getToday()
+      });
+      saveWordsToStorage();
+      closeImportModal();
+      renderWordBankList();
+      prepareDailyDeck();
+      alert('已新增單字！');
+    }
+
+    function loadDemoVocab() {
+      if (!confirm('載入範例單字庫？（將與現有單字合併）')) return;
+      const existingKeys = new Set(words.map(w => `${w.kana}_${w.kanji}`));
+      const toAdd = DEMO_WORDS.filter(w => !existingKeys.has(`${w.kana}_${w.kanji}`));
+      if (toAdd.length === 0) return alert('範例單字皆已存在');
+      words = [...words, ...toAdd];
+      saveWordsToStorage();
+      renderWordBankList();
+      prepareDailyDeck();
+      alert(`已成功加入 ${toAdd.length} 個範例單字！`);
+    }
+
+    function exportWordsToCSV() {
+      if (words.length === 0) return alert('字庫為空');
+      const rows = [
+        ['Kana', 'Kanji', 'Meaning', 'Interval', 'NextReviewDate', 'Bookmarked'],
+        ...words.map(w => [`"${w.kana}"`, `"${w.kanji || ''}"`, `"${w.meaning}"`, w.interval || 0, w.nextReviewDate || getToday(), w.bookmarked ? 'true' : 'false'])
+      ];
+      const blob = new Blob(["\uFEFF" + rows.map(r => r.join(',')).join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `japanese_vocabulary_${getToday()}.csv`;
+      link.click();
+    }
+
+    function escapeQuote(str) { return (str || '').replace(/'/g, "\\'"); }
+
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
